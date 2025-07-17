@@ -11,7 +11,7 @@ const firebaseConfig = {
   projectId: "suiviventes-v3-moderne",
   storageBucket: "suiviventes-v3-moderne.firebasestorage.app",
   messagingSenderId: "570814845718",
-  appId: "1:570814845718:web:0b5225abca8bf440947637"
+  appId: "1:25262034248:web:340760f831ede89082b77d",
   measurementId: "G-Q548YQ9MMJ"
 };
 
