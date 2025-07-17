@@ -6,13 +6,13 @@ import { getAnalytics } from 'firebase/analytics';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDvnLRDGEzEPT0lndhb24cJu0un8D3bm6w",
-  authDomain: "plaisir-des-jeux.firebaseapp.com",
-  projectId: "plaisir-des-jeux",
-  storageBucket: "plaisir-des-jeux.firebasestorage.app",
-  messagingSenderId: "188768357815",
-  appId: "1:188768357815:web:a078b688777e270090ac32",
-  measurementId: "G-RC8YEL8P7Q"
+  apiKey: "AIzaSyC4k_GxATb8M5_ufj5gPKZ2U6rTDYLInys",
+  authDomain: "beausejour-f5d88.firebaseapp.com",
+  projectId: "beausejour-f5d88",
+  storageBucket: "beausejour-f5d88.firebasestorage.app",
+  messagingSenderId: "25262034248",
+  appId: "1:25262034248:web:340760f831ede89082b77d",
+  measurementId: "G-Q548YQ9MMJ"
 };
 
 // Initialize Firebase
@@ -137,7 +137,7 @@ export interface FirestoreAlert {
 export const ENV_CONFIG = {
   isDevelopment: true,
   isProduction: false,
-  apiUrl: 'https://plaisir-des-jeux.firebaseapp.com',
+  apiUrl: 'https://beausejour-f5d88.firebaseapp.com',
   enableAnalytics: true,
   enablePerformanceMonitoring: true,
   logLevel: 'error' // Only log errors in production
