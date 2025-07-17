@@ -6,12 +6,12 @@ import { getAnalytics } from 'firebase/analytics';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC4k_GxATb8M5_ufj5gPKZ2U6rTDYLInys",
-  authDomain: "beausejour-f5d88.firebaseapp.com",
-  projectId: "beausejour-f5d88",
-  storageBucket: "beausejour-f5d88.firebasestorage.app",
-  messagingSenderId: "25262034248",
-  appId: "1:25262034248:web:340760f831ede89082b77d",
+  apiKey: "AIzaSyArF2HQYsikpctyr_B38MJyDQhtOznP9iI",
+  authDomain: "suiviventes-v3-moderne.firebaseapp.com",
+  projectId: "suiviventes-v3-moderne",
+  storageBucket: "suiviventes-v3-moderne.firebasestorage.app",
+  messagingSenderId: "570814845718",
+  appId: "1:570814845718:web:0b5225abca8bf440947637"
   measurementId: "G-Q548YQ9MMJ"
 };
 
