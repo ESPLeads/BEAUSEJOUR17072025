@@ -168,69 +168,56 @@ export function ProductEditModal({
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+  if (!product) return;
 
-    // Clear the product sales cache to ensure fresh calculations
-    setSaveError(null);
+  setIsSaving(true);
+  setSaveError(null);
+
+  try {
     clearProductSalesCache();
-    
-    try {
-      const parsedProduct: Product = {
-        ...product!,
-        name: product!.name,
-        category: product!.category,
-        price: product!.price,
-        initialStock: parseInt(formData.initialStock),
-        initialStockDate: formData.initialStockDate,
-        minStock: parseInt(formData.minStock),
-      };
 
-      // Calculate the final stock using the new logic
-      console.log('🧮 Calculating stock with new configuration:', {
-        productName: parsedProduct.name,
-        initialStock: parsedProduct.initialStock,
-        effectiveDate: parsedProduct.initialStockDate,
-        minStock: parsedProduct.minStock
-      });
-      
-      const calculation = calculateStockFinal(parsedProduct, allSales, false);
-      
-      console.log('📊 Stock calculation result:', {
-        finalStock: calculation.finalStock,
-        validSales: calculation.validSales.length,
-        ignoredSales: calculation.ignoredSales.length,
-        hasInconsistentStock: calculation.hasInconsistentStock,
-        warningMessage: calculation.warningMessage
-      });
+    const parsedProduct: Product = {
+      ...product,
+      name: product.name,
+      category: product.category,
+      price: parseFloat(price),
+      minStock: parseInt(minStock),
+      initialStock: parseInt(initialStock),
+      initialStockDate: format(new Date(initialStockDate), 'yyyy-MM-dd'),
+      isConfigured: true
+    };
 
-      const productData: Partial<Product> = {
-        initialStock: parsedProduct.initialStock,
-        initialStockDate: parsedProduct.initialStockDate,
-        minStock: parsedProduct.minStock,
-        stock: calculation.finalStock,
-        isConfigured: true,
-        quantitySold: calculation.validSales.reduce((sum, sale) => sum + sale.quantity, 0)
-      };
+    const productData: Partial<Product> = {
+      initialStock: parsedProduct.initialStock,
+      initialStockDate: parsedProduct.initialStockDate,
+      minStock: parsedProduct.minStock,
+      isConfigured: true
+    };
 
-      console.log('🔄 Saving product data:', productData);
-      
-      await onSave(productData);
-      await updateStockConfig(product!.id, {
-        initialStock: parsedProduct.initialStock,
-        initialStockDate: parsedProduct.initialStockDate,
-        minStock: parsedProduct.minStock
-      });
-      // Always consider it successful if no error was thrown
-      setSaveSuccess(true);
-      // Show success message for 3 seconds then close modal
-      setTimeout(() => {
-        onClose();
-      }, 3000);
-    } catch (error: any) {
-      console.error('Error saving product:', error);
-      setSaveError(`Erreur lors de la sauvegarde: ${error.message || 'Erreur inconnue'}`);
+    // 🟢 1. Sauvegarde du produit
+    await onSave(productData);
+
+    // 🟢 2. Mise à jour du stock avec la date d'effet
+    await updateStockConfig(product.id, {
+      initialStock: parsedProduct.initialStock,
+      initialStockDate: parsedProduct.initialStockDate,
+      minStock: parsedProduct.minStock
+    });
+
+    // 🟢 3. (Optionnel) Recharge la vue si tu as une fonction refreshData
+    if (refreshData) {
+      await refreshData();
     }
-  };
+
+    setIsSaving(false);
+    onClose();
+  } catch (error: any) {
+    console.error('Erreur lors de la sauvegarde du produit :', error);
+    setSaveError('Erreur lors de la sauvegarde. Veuillez réessayer.');
+    setIsSaving(false);
+  }
+};
+
 
   const handleDeleteProduct = async () => {
     if (!product || !onDeleteProduct) return;
