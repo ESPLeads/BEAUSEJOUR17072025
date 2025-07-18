@@ -1,69 +1,69 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  writeBatch,
-  getDoc,
-  setDoc,
-  where,
-  limit
-} from 'firebase/firestore';
-import { FirebaseError } from 'firebase/app';
-import { db } from '../lib/firebase';
-import { COLLECTIONS } from '../lib/firebase';
-import { RegisterSale, Product, Alert, DashboardStats } from '../types';
-import { format, parseISO } from 'date-fns';
+importation { État d'utilisation, useEffect, utiliserCallback } de 'réagir';
+importation { 
+ collection, 
+ ajouterDoc, 
+ mettre à jourDoc, 
+ supprimerDoc, 
+ doc, 
+ getDocs, 
+ interroger, 
+ commandantPar, 
+ écoleBatch,
+ getDoc,
+ setDoc,
+ où,
+ limite
+} de 'firebase/firestore';
+importation { Erreur Base de feu } de 'firebase/application';
+importation { db } de '../lib/firebase';
+importation { COLLECTIONS } de '../lib/firebase';
+importation { S'inscrireVente, Produit, Alerter, Statistiques du tableau de bord } de '../types';
+importation { format, parseISO } de 'date-fns';
 
-export function useFirebaseData() {
-  const [registerSales, setRegisterSales] = useState<RegisterSale[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
-    totalSales: 0,
-    totalRevenue: 0,
-    totalProducts: 0,
-    activeRegisters: 0,
-    lowStockProducts: 0, 
-    topProducts: [],
-    recentSales: []
-  });
-  const [loading, setLoading] = useState(true);
+export fonction utiliserFirebaseData() {
+  const [registreVentes, définirRegisterSales] = État d'utilisation<S'inscrireVente[]>([]);
+  const [produits, setProduit] = État d'utilisation<Produire[]>([]);
+  const [alertes, définirAlertes] = État d'utilisation<Alerteur[]>([]);
+  const [statistiques du tableau de bord, définir les statistiques du tableau de bord] = État d'utilisation<Statistiques du tableau de bord>({
+ total des vents : 0,
+ totalRevenu : 0,
+ totalProduits : 0,
+ registres actifs : 0,
+ Produits en stock de fabrication : 0, 
+ meilleurs produits : [],
+ ventiles recentes: []
+ });
+ const [charge, setLoading] = état d'utilisation(vrai);
 
-  // Load initial data
-  const loadInitialData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [salesData, productsData] = await Promise.all([
-        loadRegisterSales(),
-        loadProducts(),
+  // Chargeur les données initiales
+  const données initiales de chargement = utiliserCallback(async () => {
+    setLoading(vrai);
+    essayer {
+      const [données de vente, produitsDonnées] = assister Promesse.tous([
+        chargeurInscriptionVentes(),
+        chargeurProduit(),
         loadAlerts()
       ]);
       
-      // Calculate dashboard stats after loading data
-      const stats = calculateDashboardStats(salesData, productsData);
-      setDashboardStats(stats);
+      // Calculateur les statistiques du tableau de bord après le chargement des données
+      const statistiques = calculateur les statistiques du tableau de bord(données de vente, produitsDonnées);
+      définir les statistiques du tableau de bord(statistiques);
       
-      // Update products with sales data for consistency
-      updateProductsWithSalesData(productsData, salesData);
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    } finally {
-      setLoading(false);
+      // Mettre à jour les produits avec les données de vente pour plus de cohérence
+      mettre à jour les produits avec les données de vente(produitsDonnées, données de vente);
+    } attrapeur (erreur) {
+      console.erreur(« Erreur lors du chargement des données initiales : », erreur);
+    } enfin {
+      setLoading(faux);
     }
   }, []);
 
-  // Load alerts from Firestore
+  // Chargeur les alertes depuis Firestore
   const loadAlerts = async () => {
-    try {
-      const alertsQuery = query(
-        collection(db, 'alerts'),
-        orderBy('createdAt', 'desc')
+    essayer {
+      const alertesRequête = interroger(
+        collection(db, 'alertes'),
+        commandantPar('crééAt', 'desc')
       );
       const alertsSnapshot = await getDocs(alertsQuery);
       const alertsData = alertsSnapshot.docs.map(doc => ({
@@ -1017,63 +1017,63 @@ export function useFirebaseData() {
       const categoryMetadata = {
         category,
         subcategory: subcategory || null,
-        categorized_at: new Date().toISOString(),
-        categorized_by: 'user' // Could be enhanced to use actual user info
+        catégorisé_at: nouveau Date().toISOString(),
+        catégorisé_par: 'utilisateur' // Pourrait être amélioré pour utiliser les informations réelles de l'utilisateur
       };
       
-      existingDocs.forEach(({ ref }) => {
-        batch.update(ref, { 
-          category,
-          category_metadata: categoryMetadata
+      documents existant.pourChacun(({ ref }) => {
+        lot.update(ref, { 
+          catégorie,
+          catégorie_métadonnées: catégorieMétadonnées
         });
       });
       
-      await batch.commit();
-      console.log(`✅ Successfully categorized ${existingDocs.length} sales`);
+      assistant lot.commettre();
+      console.log(`✅ Catégorisé avec succès ${documents existants.longueur} vents`);
       
-      await loadInitialData();
-      return true;
-    } catch (error) {
-      console.error('Error categorizing sales:', error);
-      throw error;
+      assistant données initiales de chargement();
+      retour vrai;
+    } attrapeur (erreur) {
+      console.erreur(« Erreur lors de la catégorisation des venties : », erreur);
+      lancier erreur;
     }
   };
 
-  // Refresh data
-  const refreshData = useCallback(() => {
-    console.log('🔄 Manually refreshing all data...');
-    return loadInitialData();
-  }, [loadInitialData]);
+  // Actualiser les données
+  const actualiser les données = utiliserCallback(() => {
+    console.log('🔄 Actualisation manuel de toutes les données...');
+    retour données initiales de chargement();
+  }, [données initiales de chargement]);
 
-  // Load data on mount
+  // Chargeur les données lors du montage
   useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+    données initiales de chargement();
+  }, [données initiales de chargement]);
 
-  return {
-    registerSales,
-    products,
-    dashboardStats,
-    alerts,
-    loading,
-    addRegisterSales,
-    addRegisterSale,
-    updateRegisterSale,
-    updateSale,
-    deleteRegisterSale,
-    deleteRegisterSales,
-    deleteSales,
-    categorizeSales,
-    addProduct,
-    addProducts,
-    updateProduct,
-    deleteProduct,
-    deleteProducts,
+  retour {
+    registreVentes,
+    produits,
+    statistiques du tableau de bord,
+    alertes,
+    chargement,
+    ajouterRegisterVentes,
+    ajouterInscriptionVente,
+    mise à journalInscriptionVente,
+    mise à jourVente,
+    supprimerInscriptionVente,
+    supprimerInscriptionVentes,
+    supprimerVentes,
+    catégoriserVentes,
+    ajouterProduire,
+    ajouterProduire,
+    mettre à jour le produit,
+    supprimerProduire,
+    supprimerProduire,
     markAlertAsRead,
-    refreshData,
-    autoSyncProductsFromSales,
+    actualiser les données,
+    autoSyncProduitsFromSales,
     updateStockConfig,
-    deleteSelectedProducts: deleteProducts,
+    supprimerProduire sélectionnés: supprimerProduire,
     setLoading
   };
-}
+            }
