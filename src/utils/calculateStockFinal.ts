@@ -1,5 +1,5 @@
 import { Product, RegisterSale } from '../types';
-import { format, parseISO, isAfter, isBefore, startOfDay, isValid } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, startOfDay, isValid, isSameDay } from 'date-fns';
 
 // Create a cache for product sales to avoid repeated filtering
 const productSalesCache = new Map<string, RegisterSale[]>();
@@ -57,25 +57,34 @@ export function calculateStockFinal(
   // Parse the initial stock date
   const stockDate = parseISO(initialStockDate);
   const stockDateStart = startOfDay(stockDate);
-  console.log(`🔍 Calculating stock with effective date: ${stockDateStart.toISOString()}`);
+  console.log(`🔍 Calculating stock for ${product.name} with effective date: ${stockDateStart.toISOString()}`);
   
   // Separate sales before and after the stock date
   const salesBeforeStockDate: RegisterSale[] = [];
   const salesAfterStockDate: RegisterSale[] = [];
   
   productSales.forEach(sale => {
-    if (isBefore(sale.date, stockDateStart)) {
+    const saleDate = startOfDay(sale.date);
+    
+    // Sales before the effective date are ignored
+    if (isBefore(saleDate, stockDateStart)) {
       console.log(`⏮️ Sale before effective date: ${sale.date.toISOString()} - ${sale.product} (${sale.quantity} units)`);
       salesBeforeStockDate.push(sale);
+    } else if (isAfter(saleDate, stockDateStart) || isSameDay(saleDate, stockDateStart)) {
+      console.log(`✅ Sale on/after effective date: ${sale.date.toISOString()} - ${sale.product} (${sale.quantity} units) - INCLUDED`);
+      salesAfterStockDate.push(sale);
     } else {
+      console.log(`❓ Sale date comparison unclear: ${sale.date.toISOString()} vs ${stockDateStart.toISOString()}`);
+      // Default to including the sale if comparison is unclear
       salesAfterStockDate.push(sale);
     }
   });
   
   // Calculate final stock using only sales after the stock date
   const validSoldQuantity = salesAfterStockDate.reduce((sum, sale) => sum + sale.quantity, 0);
-  console.log(`📊 Total sold after effective date: ${validSoldQuantity} units from ${salesAfterStockDate.length} sales`);
+  console.log(`📊 ${product.name}: Initial stock ${initialStock} - Valid sales ${validSoldQuantity} units (from ${salesAfterStockDate.length} sales after ${format(stockDateStart, 'yyyy-MM-dd')})`);
   const finalStock = Math.max(0, initialStock - validSoldQuantity);
+  console.log(`🧮 ${product.name}: Final stock = ${initialStock} - ${validSoldQuantity} = ${finalStock}`);
   
   // Determine if there are inconsistencies
   const hasInconsistentStock = salesBeforeStockDate.length > 0;
@@ -83,7 +92,7 @@ export function calculateStockFinal(
   
   if (hasInconsistentStock) {
     const ignoredQuantity = salesBeforeStockDate.reduce((sum, sale) => sum + sale.quantity, 0);
-    warningMessage = `${salesBeforeStockDate.length} vente(s) antérieure(s) à la date de stock (${ignoredQuantity} unités ignorées)`;
+    warningMessage = `${salesBeforeStockDate.length} vente(s) antérieure(s) à la date d'effet ${format(stockDateStart, 'dd/MM/yyyy')} (${ignoredQuantity} unités ignorées)`;
   }
   
   return {
@@ -183,7 +192,7 @@ export function validateStockConfiguration(
   // Check for sales before stock date
   const productSales = findProductSales(product, allSales, true);
   const salesBeforeStockDate = productSales.filter(sale => 
-    isBefore(sale.date, startOfDay(stockDate))
+    isBefore(startOfDay(sale.date), startOfDay(stockDate))
   );
   
   if (salesBeforeStockDate.length > 0) {
@@ -318,7 +327,7 @@ export function debugStockCalculation(product: Product, allSales: RegisterSale[]
   // Separate sales before and after the stock date
   const salesBeforeStockDate = productSales.filter(sale => isBefore(sale.date, stockDateStart));
   const salesAfterStockDate = productSales.filter(sale => 
-    isAfter(sale.date, stockDateStart) || sale.date.getTime() === stockDateStart.getTime()
+    isAfter(startOfDay(sale.date), stockDateStart) || isSameDay(startOfDay(sale.date), stockDateStart)
   );
   
   console.log(`📊 Sales before effective date: ${salesBeforeStockDate.length}`);

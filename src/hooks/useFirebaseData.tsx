@@ -839,8 +839,10 @@ export function useFirebaseData() {
   // Update stock configuration
   const updateStockConfig = async (productId: string, config: { initialStock: number, initialStockDate: string, minStock: number }) => {
     try {
-      console.log('🔄 Updating stock configuration:', productId, config);
-      console.log('📅 Effective date for calculation:', config.initialStockDate);
+      console.log('🔄 Updating stock configuration for product:', productId);
+      console.log('📦 Initial stock:', config.initialStock);
+      console.log('📅 Effective date:', config.initialStockDate);
+      console.log('⚠️ Min stock:', config.minStock);
       
       // Get the product document
       const productRef = doc(db, 'products', productId);
@@ -851,12 +853,11 @@ export function useFirebaseData() {
         console.log('📦 Current product data:', JSON.stringify(productData, null, 2));
         
         // Get all sales for this product to calculate accurate stock
-        // Using a more flexible approach to find sales
         const salesQuery = query(collection(db, 'register_sales'));
         const salesSnapshot = await getDocs(salesQuery);
         console.log(`📊 Found ${salesSnapshot.docs.length} total sales`);
         
-        // Manual filtering to ensure we catch all relevant sales
+        // Filter sales for this specific product
         const productSales = salesSnapshot.docs.filter(doc => {
           const saleData = doc.data();
           return saleData.product === productData.name && 
@@ -865,10 +866,9 @@ export function useFirebaseData() {
         
         console.log(`📊 Found ${productSales.length} sales for product "${productData.name}" in category "${productData.category}"`);
         
-        // Parse the effective date
+        // Parse the effective date and set to start of day
         const effectiveDate = new Date(config.initialStockDate);
-        const effectiveDateStart = new Date(effectiveDate);
-        effectiveDateStart.setHours(0, 0, 0, 0);
+        const effectiveDateStart = startOfDay(effectiveDate);
         console.log(`📅 Effective date (start of day): ${effectiveDateStart.toISOString()}`);
         
         let quantitySold = 0;
@@ -877,8 +877,6 @@ export function useFirebaseData() {
         
         productSales.forEach((doc) => {
           const saleData = doc.data();
-          
-          // Debug info
           const saleId = doc.id;
           
           // Convert sale date to a consistent format
@@ -888,42 +886,48 @@ export function useFirebaseData() {
           } else if (saleData.date && typeof saleData.date.toDate === 'function') {
             saleDate = saleData.date.toDate();
           } else {
-            saleDate = new Date(0);
+            saleDate = new Date();
             console.warn(`⚠️ Invalid date format for sale ${saleId}`);
           }
           
-          // Create debug info for this sale
+          // Normalize sale date to start of day for comparison
+          const saleDateStart = startOfDay(saleDate);
+          
           const debugInfo = {
             id: saleId,
             product: saleData.product,
             category: saleData.category,
-            date: saleDate.toISOString(),
+            date: saleDateStart.toISOString(),
             quantity: saleData.quantity || 0,
-            included: saleDate >= effectiveDateStart
+            included: saleDateStart >= effectiveDateStart || isSameDay(saleDateStart, effectiveDateStart)
           };
           debugSales.push(debugInfo);
           
-          // Compare dates properly
-          const saleTime = saleDate.getTime();
+          // Compare dates properly (start of day comparison)
+          const saleTime = saleDateStart.getTime();
           const effectiveTime = effectiveDateStart.getTime();
           
-          if (saleTime >= effectiveTime) {
+          // Include sales on or after the effective date
+          if (saleTime >= effectiveTime || isSameDay(saleDateStart, effectiveDateStart)) {
             const quantity = saleData.quantity || 0;
             quantitySold += quantity;
             salesAfterEffectiveDate++;
-            console.log(`✅ Including sale from ${saleDate.toISOString()} with quantity ${quantity}`);
+            console.log(`✅ Including sale from ${format(saleDateStart, 'yyyy-MM-dd')} with quantity ${quantity}`);
           } else {
-            console.log(`⏭️ Skipping sale from ${saleDate.toISOString()} (before effective date: ${effectiveDateStart.toISOString()})`);
+            console.log(`⏭️ Skipping sale from ${format(saleDateStart, 'yyyy-MM-dd')} (before effective date: ${format(effectiveDateStart, 'yyyy-MM-dd')})`);
           }
         });
         
         // Log detailed debug info
-        console.log('🔍 Detailed sales analysis:', JSON.stringify(debugSales, null, 2));
-        console.log(`🧮 Total quantity sold after ${effectiveDateStart.toISOString()}: ${quantitySold} units (from ${salesAfterEffectiveDate} sales)`);
+        console.log('🔍 Sales analysis summary:');
+        debugSales.forEach(sale => {
+          console.log(`  ${sale.included ? '✅' : '❌'} ${sale.date.split('T')[0]} - ${sale.quantity} units`);
+        });
+        console.log(`🧮 Total quantity sold on/after ${format(effectiveDateStart, 'yyyy-MM-dd')}: ${quantitySold} units (from ${salesAfterEffectiveDate} sales)`);
         
         // Calculate current stock based on initial stock and sales
         const stock = Math.max(0, config.initialStock - quantitySold);
-        console.log(`📊 Final stock calculation: ${config.initialStock} - ${quantitySold} = ${stock}`);
+        console.log(`📊 Final stock calculation for ${productData.name}: ${config.initialStock} - ${quantitySold} = ${stock}`);
         
         const updatedProduct = {
           initialStock: config.initialStock,
@@ -933,17 +937,23 @@ export function useFirebaseData() {
           stock: stock,
           stockValue: Math.round((stock * productData.price) * 100) / 100, // Round to 2 decimal places
           isConfigured: true,
-          lastUpdated: new Date().toISOString() // Add timestamp for tracking updates
+          lastUpdated: new Date().toISOString(),
+          calculationDetails: {
+            effectiveDate: config.initialStockDate,
+            salesIncluded: salesAfterEffectiveDate,
+            salesIgnored: productSales.length - salesAfterEffectiveDate,
+            quantitySoldAfterEffectiveDate: quantitySold
+          }
         };
         
         console.log('✅ Updating product with:', JSON.stringify(updatedProduct, null, 2));
         await updateDoc(productRef, updatedProduct);
         console.log('✅ Stock configuration updated successfully');
         
-        // Force reload products to ensure we get the latest data
+        // Reload products to reflect changes
         await loadProducts();
+        return true;
       }
-      // Don't reload all products, let the component handle the update
       return false;
     } catch (error) {
       console.error('❌ Error updating stock config:', error.message, error.stack);
