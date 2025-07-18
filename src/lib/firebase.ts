@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, getDocs, query, limit, setDoc, deleteDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+
 
 // Firebase configuration
 const firebaseConfig = {
@@ -22,7 +22,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+
 
 
 // Configure auth settings for production
