@@ -173,12 +173,26 @@ export function ProductEditModal({
     clearProductSalesCache();
     
     try {
-      const productData: Partial<Product> = {
-        initialStock: parseInt(formData.initialStock),
-        initialStockDate: formData.initialStockDate,
-        minStock: parseInt(formData.minStock),
-        isConfigured: true // Mark as configured when saved
-      };
+      const parsedProduct: Product = {
+  ...product!,
+  name: product!.name,
+  category: product!.category,
+  price: product!.price,
+  initialStock: parseInt(formData.initialStock),
+  initialStockDate: formData.initialStockDate,
+  minStock: parseInt(formData.minStock),
+};
+
+const calculation = calculateStockFinal(parsedProduct, allSales, false);
+
+const productData: Partial<Product> = {
+  initialStock: parsedProduct.initialStock,
+  initialStockDate: parsedProduct.initialStockDate,
+  minStock: parsedProduct.minStock,
+  stock: calculation.finalStock,
+  isConfigured: true
+};
+
       console.log('🔄 Saving product data:', productData);
       
       const success = await onSave(productData);
