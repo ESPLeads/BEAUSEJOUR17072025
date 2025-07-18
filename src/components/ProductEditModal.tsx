@@ -215,6 +215,11 @@ export function ProductEditModal({
       console.log('🔄 Saving product data:', productData);
       
       await onSave(productData);
+await updateStockConfig(product!.id, {
+  initialStock: parsedProduct.initialStock,
+  initialStockDate: parsedProduct.initialStockDate,
+  minStock: parsedProduct.minStock
+});
       // Always consider it successful if no error was thrown
       setSaveSuccess(true);
       // Show success message for 3 seconds then close modal
