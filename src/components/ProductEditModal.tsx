@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { calculateStockFinal } from '../utils/calculateStockFinal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
 import { 
